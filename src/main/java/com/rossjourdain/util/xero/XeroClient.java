@@ -21,7 +21,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.List;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.oauth.OAuth;
 import net.oauth.OAuthAccessor;
 import net.oauth.OAuthConsumer;
@@ -144,6 +150,26 @@ public class XeroClient {
         }
     }
 
+    public Invoice getInvoiceByReference(String reference) throws XeroClientException, XeroClientUnexpectedException {
+        try {
+            OAuthClient client = new OAuthClient(new HttpClient3());
+            OAuthAccessor accessor = buildAccessor();
+            String where = String.format("reference=\"%s\"", reference);
+            
+            OAuthMessage response = client.invoke(accessor, OAuthMessage.GET, endpointUrl + "Invoices", OAuth.newList("where", URLDecoder.decode(where, "UTF-8")));
+            
+            InputStream bodyAsStream = response.getBodyAsStream();
+            String body = new Scanner(bodyAsStream).useDelimiter("\\A").next();
+            Logger.getLogger(XeroClient.class.getName()).log(Level.INFO, body);
+        } catch (OAuthProblemException ex) {
+            throw new XeroClientException("Error posting payments", ex);
+        } catch (Exception ex) {
+            throw new XeroClientUnexpectedException("", ex);
+        }
+        
+        return null;
+    }
+    
     public File getInvoiceAsPdf(String invoiceId) throws XeroClientException, XeroClientUnexpectedException {
 
         File file = null;
